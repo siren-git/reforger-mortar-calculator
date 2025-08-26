@@ -35,7 +35,6 @@
   .row { display:flex; gap:12px; }
   .col { flex:1; }
   #output, #milsComparison { margin-top:10px; font-weight:700 }
-  /* fixed canvas size to prevent Chart.js from expanding it on redraw */
   .chart-wrap { width:820px; max-width:100%; height:420px; }
   canvas { background:#111; border-radius:12px; display:block; width:100%; height:100%; }
   .small { font-size:0.9em; color:var(--muted); margin-top:4px }
@@ -45,7 +44,6 @@
   }
 </style>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -91,8 +89,7 @@
 </div>
 
 <script>
-/* ---------- ballistic & correction tables (unchanged) ---------- */
-/* (All of your tables go here exactly as before.) For brevity in this message they are included inline */
+/* ---------- ballistic & correction tables  ---------- */
 const ballisticTables = {
   "M821_HE": {
     4: [[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
@@ -216,7 +213,7 @@ function calculate(){
 
   cmp.innerHTML = `<div><strong>At ${range} m:</strong> Original = ${baseMils.toFixed(2)} mils, Corrected = ${correctedMils.toFixed(2)} mils</div>`;
 
-  // Build arcs
+
   const samples = Math.max(40, Math.min(240, Math.round(range/10)));
   const arcOrig = buildArc(range, baseMils, samples);
   const arcCorr = buildArc(range, correctedMils, samples);
@@ -226,23 +223,22 @@ function calculate(){
   const impactOrig = [{x: range, y: 0}];
   const impactCorr = [{x: range, y: 0}];
 
-  // Determine Y-range
+
   const allY = origData.map(p=>p.y).concat(corrData.map(p=>p.y));
   const maxY = Math.max(...allY);
   const yPadding = Math.max(10, maxY * 0.08);
 
-  // Get canvas and reset fixed pixel size BEFORE creating chart to avoid Chart.js autosizing accumulation bug
   const canvas = document.getElementById('trajChart');
-  // Set explicit pixel size (matches .chart-wrap CSS)
-  canvas.width = canvas.clientWidth; // ensure internal pixel size matches style
+
+  canvas.width = canvas.clientWidth; 
   canvas.height = canvas.clientHeight;
 
-  // Destroy previous chart if any
+
   if (trajChart) { trajChart.destroy(); trajChart = null; }
 
   const ctx = canvas.getContext('2d');
 
-  // Create chart with responsive=false so Chart.js will not repeatedly change canvas size
+
   trajChart = new Chart(ctx, {
     type: 'scatter',
     data: {
@@ -254,7 +250,7 @@ function calculate(){
       ]
     },
     options: {
-      responsive: false,              // important: prevent automatic resizing that caused the expansion bug
+      responsive: false,             
       maintainAspectRatio: false,
       animation: false,
       plugins: { legend:{ labels:{ color:'#ddd' } }, tooltip: {
@@ -276,8 +272,9 @@ function resetView(){
   if (trajChart) { trajChart.destroy(); trajChart = null; }
 }
 
-// ensure rings dropdown initially populated
+
 updateRingsOptions();
 </script>
 </body>
 </html>
+

@@ -1,365 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mortar Elevation Calculator</title>
-  <style>
-    :root {
-      --bg-color: #121212;
-      --text-color: #eee;
-      --input-bg: #1e1e1e;
-      --input-text: #eee;
-      --button-bg: #007bff;
-      --button-text: #fff;
-      --chart-bg: #1e1e1e;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    select, input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 1.1em;
-      background-color: var(--input-bg);
-      color: var(--input-text);
-      border: 1px solid #555;
-      border-radius: 10px;
-      box-sizing: border-box;
-    }
-
-    button {
-      background-color: var(--button-bg);
-      color: var(--button-text);
-      border: none;
-      cursor: pointer;
-      border-radius: 12px;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    #result, #milsComparison {
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-top: 10px;
-    }
-
-    .small {
-      font-size: 0.9em;
-      color: #aaa;
-    }
-
-    canvas {
-      margin-top: 20px;
-      background-color: var(--chart-bg);
-      border-radius: 12px;
-      padding: 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Mortar Ballistics Calculator</title>
+<style>
+  :root {
+    --bg: #121212;
+    --panel: #1e1e1e;
+    --text: #eee;
+    --muted: #aaa;
+    --accent: #2d7dff;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 0 auto 20px;
+    max-width: 760px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  h2, h3 { margin-top: 0; }
+  label { display:block; margin: 10px 0 6px; }
+  select, input, button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: #1c1c1c;
+    color: var(--text);
+    box-sizing: border-box;
+  }
+  button {
+    margin-top: 10px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s ease;
+  }
+  button:hover { filter: brightness(0.92); }
+  .hint { color: var(--muted); font-size: 0.9em; }
+  #output, #milsComparison { font-weight: bold; margin-top: 8px; }
+  canvas {
+    background:#1a1a1a;
+    border-radius: 12px;
+    padding: 10px;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <h2>Mortar Elevation Calculator</h2>
+<div class="card">
+  <h2>Mortar Ballistics Calculator</h2>
 
-  <label for="shellSelect">Select Shell Type:</label>
+  <label for="shellSelect">Shell Type:</label>
   <select id="shellSelect" onchange="updateRingsOptions()">
     <option value="M821_HE">M821 HE</option>
     <option value="M819_Smoke">M819 Smoke</option>
     <option value="M853A1_Illum">M853A1 Illumination</option>
+    <option value="O832DU">0-832DU</option>
   </select>
 
-  <label for="ringSelect">Select Charge Rings:</label>
-  <select id="ringSelect"></select>
+  <label for="ringsSelect">Charge Rings:</label>
+  <select id="ringsSelect"></select>
 
-  <label for="rangeInput">Enter Range (meters):</label>
-  <input type="number" id="rangeInput" placeholder="e.g., 1250" />
+  <label for="rangeInput">Target Range (meters):</label>
+  <input type="number" id="rangeInput" placeholder="e.g., 1200" />
 
-  <div id="elevControls">
-    <label class="small" for="elevDiffInput">
-      Target Elevation Difference (meters, optional):<br>
-      <span class="small">Use <strong>-m</strong> if target is above you, <strong>+m</strong> if target is below you.</span>
-    </label>
-    <input type="number" id="elevDiffInput" placeholder="e.g., -50 (above), +50 (below)" />
-    <label><input type="checkbox" id="applyElevCorrection"> Apply elevation correction (M821 HE only)</label>
-  </div>
+  <label for="elevDiffInput">
+    Target Elevation Difference (meters, optional)
+    <div class="hint">Use <strong>-m</strong> if target is above you, <strong>+m</strong> if target is below you.</div>
+  </label>
+  <input type="number" id="elevDiffInput" placeholder="e.g., -50 (above), +50 (below)" />
 
-  <button onclick="calculateMils()">Calculate Elevation</button>
-  <div id="result"></div>
+  <button onclick="calculate()">Calculate Elevation</button>
+  <div id="output"></div>
+</div>
+
+<div class="card">
+  <h3>Original vs Corrected Elevation</h3>
   <div id="milsComparison"></div>
-  <canvas id="comparisonChart" width="600" height="400"></canvas>
+  <canvas id="comparisonChart" width="700" height="380"></canvas>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    const ballisticTables = {
-      "M821_HE": {
-        "4": [
-          { range: 400, mils: 1531 }, { range: 500, mils: 1514 }, { range: 600, mils: 1496 },
-          { range: 700, mils: 1478 }, { range: 800, mils: 1460 }, { range: 900, mils: 1442 },
-          { range: 1000, mils: 1424 }, { range: 1100, mils: 1405 }, { range: 1200, mils: 1385 },
-          { range: 1400, mils: 1346 }, { range: 1500, mils: 1326 }, { range: 1600, mils: 1305 },
-          { range: 1700, mils: 1283 }, { range: 1800, mils: 1261 }, { range: 1900, mils: 1238 },
-          { range: 2000, mils: 1214 }, { range: 2100, mils: 1188 }, { range: 2300, mils: 1134 },
-          { range: 2400, mils: 1104 }, { range: 2500, mils: 1070 }, { range: 2600, mils: 1034 },
-          { range: 2700, mils: 993 }, { range: 2800, mils: 942 }, { range: 2900, mils: 870 }
-        ],
-        "3": [
-          { range: 300, mils: 1534 }, { range: 400, mils: 1511 }, { range: 500, mils: 1489 },
-          { range: 600, mils: 1466 }, { range: 700, mils: 1442 }, { range: 800, mils: 1419 },
-          { range: 900, mils: 1395 }, { range: 1000, mils: 1370 }, { range: 1100, mils: 1344 },
-          { range: 1200, mils: 1318 }, { range: 1300, mils: 1291 }, { range: 1400, mils: 1263 },
-          { range: 1500, mils: 1233 }, { range: 1600, mils: 1202 }, { range: 1700, mils: 1169 },
-          { range: 1800, mils: 1133 }, { range: 1900, mils: 1094 }, { range: 2000, mils: 1051 },
-          { range: 2100, mils: 999 }, { range: 2200, mils: 931 }, { range: 2300, mils: 801 }
-        ],
-        "2": [
-          { range: 200, mils: 1538 }, { range: 300, mils: 1507 }, { range: 400, mils: 1437.5 },
-          { range: 500, mils: 1443 }, { range: 600, mils: 1410 }, { range: 700, mils: 1376 },
-          { range: 800, mils: 1341 }, { range: 900, mils: 1305 }, { range: 1000, mils: 1266 },
-          { range: 1100, mils: 1225 }, { range: 1200, mils: 1180 }, { range: 1300, mils: 1132 },
-          { range: 1400, mils: 1076 }, { range: 1500, mils: 1009 }
-        ],
-        "1": [
-          { range: 100, mils: 1547 }, { range: 200, mils: 1492 }, { range: 300, mils: 1437 },
-          { range: 400, mils: 1378 }, { range: 500, mils: 1317 }, { range: 600, mils: 1249 },
-          { range: 700, mils: 1174 }, { range: 800, mils: 1085 }, { range: 900, mils: 954 }
-        ],
-        "0": [
-          { range: 50, mils: 1540 }, { range: 100, mils: 1479 }, { range: 150, mils: 1416 },
-          { range: 200, mils: 1350 }, { range: 250, mils: 1279 }, { range: 300, mils: 1201 },
-          { range: 350, mils: 1106 }, { range: 400, mils: 955 }
-        ]
-      },
-      "M819_Smoke": {
-        "4": [
-          { range: 400, mils: 1517 }, { range: 500, mils: 1495 }, { range: 600, mils: 1474 },
-          { range: 700, mils: 1452 }, { range: 800, mils: 1429 }, { range: 900, mils: 1407 },
-          { range: 1000, mils: 1383 }, { range: 1100, mils: 1360 }, { range: 1200, mils: 1335 },
-          { range: 1300, mils: 1310 }, { range: 1400, mils: 1284 }, { range: 1500, mils: 1257 },
-          { range: 1600, mils: 1228 }, { range: 1700, mils: 1199 }, { range: 1800, mils: 1166 },
-          { range: 1900, mils: 1132 }, { range: 2000, mils: 1096 }, { range: 2100, mils: 1055 },
-          { range: 2200, mils: 1008 }, { range: 2300, mils: 952 }, { range: 2400, mils: 871 }
-        ],
-        "3": [
-          { range: 300, mils: 1522 }, { range: 400, mils: 1495 }, { range: 500, mils: 1468 },
-          { range: 600, mils: 1440 }, { range: 700, mils: 1412 }, { range: 800, mils: 1383 },
-          { range: 900, mils: 1354 }, { range: 1000, mils: 1323 }, { range: 1100, mils: 1291 },
-          { range: 1200, mils: 1257 }, { range: 1300, mils: 1221 }, { range: 1400, mils: 1183 },
-          { range: 1500, mils: 1142 }, { range: 1600, mils: 1096 }, { range: 1700, mils: 1044 },
-          { range: 1800, mils: 980 }, { range: 1900, mils: 892 }
-        ],
-        "2": [
-          { range: 200, mils: 1528 }, { range: 300, mils: 1491 }, { range: 400, mils: 1453 },
-          { range: 500, mils: 1414 }, { range: 600, mils: 1374 }, { range: 700, mils: 1333 },
-          { range: 800, mils: 1289 }, { range: 900, mils: 1242 }, { range: 1000, mils: 1191 },
-          { range: 1100, mils: 1133 }, { range: 1200, mils: 1067 }, { range: 1300, mils: 980 },
-          { range: 1400, mils: 818 }
-        ],
-        "1": [
-          { range: 200, mils: 1463 }, { range: 250, mils: 1427 }, { range: 300, mils: 1391 },
-          { range: 350, mils: 1352 }, { range: 400, mils: 1314 }, { range: 450, mils: 1271 },
-          { range: 500, mils: 1227 }, { range: 550, mils: 1178 }, { range: 600, mils: 1124 },
-          { range: 650, mils: 1060 }, { range: 700, mils: 982 }, { range: 750, mils: 822 }
-        ]
-      },
-      "M853A1_Illum": {
-        "4": [
-          { range: 400, mils: 1515 }, { range: 500, mils: 1493 }, { range: 600, mils: 1471 },
-          { range: 700, mils: 1448 }, { range: 800, mils: 1426 }, { range: 900, mils: 1402 },
-          { range: 1000, mils: 1378 }, { range: 1100, mils: 1353 }, { range: 1200, mils: 1328 },
-          { range: 1300, mils: 1301 }, { range: 1400, mils: 1274 }, { range: 1500, mils: 1245 },
-          { range: 1600, mils: 1215 }, { range: 1700, mils: 1184 }, { range: 1800, mils: 1151 },
-          { range: 1900, mils: 1115 }, { range: 2000, mils: 1076 }, { range: 2100, mils: 1033 },
-          { range: 2200, mils: 985 }, { range: 2300, mils: 928 }, { range: 2400, mils: 855 }
-        ],
-        "3": [
-          { range: 300, mils: 1521 }, { range: 400, mils: 1494 }, { range: 500, mils: 1466 },
-          { range: 600, mils: 1438 }, { range: 700, mils: 1409 }, { range: 800, mils: 1380 },
-          { range: 900, mils: 1349 }, { range: 1000, mils: 1317 }, { range: 1100, mils: 1284 },
-          { range: 1200, mils: 1249 }, { range: 1300, mils: 1212 }, { range: 1400, mils: 1172 },
-          { range: 1500, mils: 1128 }, { range: 1600, mils: 1081 }, { range: 1700, mils: 1027 },
-          { range: 1800, mils: 962 }, { range: 1900, mils: 875 }
-        ],
-        "2": [
-          { range: 200, mils: 1529 }, { range: 300, mils: 1493 }, { range: 400, mils: 1457 },
-          { range: 500, mils: 1419 }, { range: 600, mils: 1379 }, { range: 700, mils: 1338 },
-          { range: 800, mils: 1295 }, { range: 900, mils: 1249 }, { range: 1000, mils: 1199 },
-          { range: 1100, mils: 1144 }, { range: 1200, mils: 1081 }, { range: 1300, mils: 1005 },
-          { range: 1400, mils: 900 }
-        ],
-        "1": [
-          { range: 200, mils: 1463 }, { range: 250, mils: 1428 }, { range: 300, mils: 1391 },
-          { range: 350, mils: 1352 }, { range: 400, mils: 1312 }, { range: 450, mils: 1269 },
-          { range: 500, mils: 1224 }, { range: 550, mils: 1175 }, { range: 600, mils: 1120 },
-          { range: 650, mils: 1055 }, { range: 700, mils: 974 }, { range: 750, mils: 823 }
-        ]
-      }
-    };
+<script>
+/* ===========================
+   Ballistic Tables (range → mils)
+   =========================== */
+const ballisticTables = {
+  "M821_HE": {
+    4: [
+      [400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],
+      [1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],
+      [1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],
+      [2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]
+    ],
+    3: [
+      [300,1534],[400,1511],[500,1489],[600,1466],[700,1442],[800,1419],
+      [900,1395],[1000,1370],[1100,1344],[1200,1318],[1300,1291],[1400,1263],
+      [1500,1233],[1600,1202],[1700,1169],[1800,1133],[1900,1094],[2000,1051],
+      [2100,999],[2200,931],[2300,801]
+    ],
+    2: [
+      [200,1538],[300,1507],[400,1437.5],[500,1443],[600,1410],[700,1376],
+      [800,1341],[900,1305],[1000,1266],[1100,1225],[1200,1180],[1300,1132],
+      [1400,1076],[1500,1009]
+    ],
+    1: [
+      [100,1547],[200,1492],[300,1437],[400,1378],[500,1317],[600,1249],
+      [700,1174],[800,1085],[900,954]
+    ],
+    0: [
+      [50,1540],[100,1479],[150,1416],[200,1350],[250,1279],[300,1201],
+      [350,1106],[400,955]
+    ]
+  },
 
-const elevCorrectionTables = {
-"M821_HE": {
-"4": [
-{ range: 400, val: 9 }, { range: 500, val: 9 }, { range: 600, val: 9 },
-{ range: 700, val: 9 }, { range: 800, val: 9 }, { range: 900, val: 9 },
-{ range: 1000, val: 10 }, { range: 1100, val: 10 }, { range: 1200, val: 9 },
-{ range: 1300, val: 10 }, { range: 1400, val: 10 }, { range: 1500, val: 11 },
-{ range: 1600, val: 11 }, { range: 1700, val: 11 }, { range: 1800, val: 11 },
-{ range: 1900, val: 12 }, { range: 2000, val: 12 }, { range: 2100, val: 13 },
-{ range: 2200, val: 14 }, { range: 2300, val: 15 }, { range: 2400, val: 17 },
-{ range: 2500, val: 17 }, { range: 2600, val: 20 }, { range: 2700, val: 25 },
-{ range: 2800, val: 31 }, { range: 2900, val: 64 }
-],
-"3": [
-{ range: 300, val: 12 }, { range: 400, val: 11 }, { range: 500, val: 12 },
-{ range: 600, val: 12 }, { range: 700, val: 12 }, { range: 800, val: 12 },
-{ range: 900, val: 13 }, { range: 1000, val: 13 }, { range: 1100, val: 13 },
-{ range: 1200, val: 13 }, { range: 1300, val: 14 }, { range: 1400, val: 15 },
-{ range: 1600, val: 16 }, { range: 1700, val: 17 }, { range: 1800, val: 19 },
-{ range: 1900, val: 21 }, { range: 2000, val: 26 }, { range: 2100, val: 31 },
-{ range: 2200, val: 46 }
-],
-"2": [
-{ range: 200, val: 15 }, { range: 300, val: 16 }, { range: 400, val: 16 },
-{ range: 500, val: 16 }, { range: 600, val: 16 }, { range: 700, val: 17 },
-{ range: 800, val: 18 }, { range: 900, val: 20 }, { range: 1000, val: 20 },
-{ range: 1100, val: 22 }, { range: 1200, val: 23 }, { range: 1300, val: 27 },
-{ range: 1400, val: 31 }, { range: 1500, val: 43 }, { range: 1600, val: 109 }
-],
-"1": [
-{ range: 100, val: 28 }, { range: 200, val: 27 }, { range: 300, val: 29 },
-{ range: 400, val: 31 }, { range: 500, val: 33 }, { range: 600, val: 35 },
-{ range: 700, val: 42 }, { range: 800, val: 57 }, { range: 900, val: 148 }
-],
-"0": [
-{ range: 50, val: 61 }, { range: 100, val: 63 }, { range: 150, val: 66 },
-{ range: 200, val: 71 }, { range: 250, val: 78 }, { range: 300, val: 95 },
-{ range: 350, val: 151 }
-]
-}
+  "M819_Smoke": {
+    4: [
+      [400,1517],[500,1495],[600,1474],[700,1452],[800,1429],[900,1407],
+      [1000,1383],[1100,1360],[1200,1335],[1300,1310],[1400,1284],[1500,1257],
+      [1600,1228],[1700,1199],[1800,1166],[1900,1132],[2000,1096],[2100,1055],
+      [2200,1008],[2300,952],[2400,871]
+    ],
+    3: [
+      [300,1522],[400,1495],[500,1468],[600,1440],[700,1412],[800,1383],
+      [900,1354],[1000,1323],[1100,1291],[1200,1257],[1300,1221],[1400,1183],
+      [1500,1142],[1600,1096],[1700,1044],[1800,980],[1900,892]
+    ],
+    2: [
+      [200,1528],[300,1491],[400,1453],[500,1414],[600,1374],[700,1333],
+      [800,1289],[900,1242],[1000,1191],[1100,1133],[1200,1067],[1300,980],
+      [1400,818]
+    ],
+    1: [
+      [200,1463],[250,1427],[300,1391],[350,1352],[400,1314],[450,1271],
+      [500,1227],[550,1178],[600,1124],[650,1060],[700,982],[750,822]
+    ]
+  },
+
+  "M853A1_Illum": {
+    4: [
+      [400,1515],[500,1493],[600,1471],[700,1448],[800,1426],[900,1402],
+      [1000,1378],[1100,1353],[1200,1328],[1300,1301],[1400,1274],[1500,1245],
+      [1600,1215],[1700,1184],[1800,1151],[1900,1115],[2000,1076],[2100,1033],
+      [2200,985],[2300,928],[2400,855]
+    ],
+    3: [
+      [300,1521],[400,1494],[500,1466],[600,1438],[700,1409],[800,1380],
+      [900,1349],[1000,1317],[1100,1284],[1200,1249],[1300,1212],[1400,1172],
+      [1500,1128],[1600,1081],[1700,1027],[1800,962],[1900,875]
+    ],
+    2: [
+      [200,1529],[300,1493],[400,1457],[500,1419],[600,1379],[700,1338],
+      [800,1295],[900,1249],[1000,1199],[1100,1144],[1200,1081],[1300,1005],
+      [1400,900]
+    ],
+    1: [
+      [200,1463],[250,1428],[300,1391],[350,1352],[400,1312],[450,1269],
+      [500,1224],[550,1175],[600,1120],[650,1055],[700,974],[750,823]
+    ]
+  },
+
+  "O832DU": {
+    4: [
+      [400,1418],[500,1398],[600,1376],[700,1355],[800,1333],[900,1311],
+      [1000,1288],[1100,1264],[1200,1240],[1300,1215],[1400,1189],[1500,1161],
+      [1600,1133],[1700,1102],[1800,1069],[1900,1034],[2000,995],[2100,950],
+      [2200,896],[2300,820]
+    ],
+    3: [
+      [300,1423],[400,1397],[500,1370],[600,1343],[700,1315],[800,1286],
+      [900,1257],[1000,1226],[1100,1193],[1200,1159],[1300,1123],[1400,1084],
+      [1500,1040],[1600,991],[1700,932],[1800,851]
+    ],
+    2: [
+      [200,1432],[300,1397],[400,1362],[500,1325],[600,1288],[700,1248],
+      [800,1207],[900,1162],[1000,1114],[1100,1060],[1200,997],[1300,914],
+      [1400,755]
+    ],
+    1: [
+      [100,1446],[200,1392],[300,1335],[400,1275],[500,1212],[600,1141],
+      [700,1058],[800,952]
+    ],
+    0: [
+      [50,1455],[100,1411],[150,1365],[200,1318],[250,1268],[300,1217],
+      [350,1159],[400,1095],[450,1023],[500,922]
+    ]
+  }
 };
-    let chartInstance = null;
 
-    function updateRingsOptions() {
-      const shell = document.getElementById("shellSelect").value;
-      const ringSelect = document.getElementById("ringSelect");
-      ringSelect.innerHTML = "";
-      const availableRings = Object.keys(ballisticTables[shell]).sort((a,b)=>b-a);
-      availableRings.forEach(ring=>{
-        const option=document.createElement("option");
-        option.value=ring; option.textContent=ring+" rings";
-        ringSelect.appendChild(option);
-      });
-      document.getElementById("elevControls").classList.toggle("hidden", shell!="M821_HE");
+/* ============================================
+   Elevation Correction Tables (per 100m Δelev)
+   Sign convention: -m above target, +m below
+   ============================================ */
+const elevCorrectionTables = {
+  // M821 HE
+  "M821_HE": {
+    4: [
+      [400,9],[500,9],[600,9],[700,9],[800,9],[900,9],[1000,10],[1100,10],[1200,9],
+      [1300,10],[1400,10],[1500,11],[1600,11],[1700,11],[1800,11],[1900,12],
+      [2000,12],[2100,13],[2200,14],[2300,15],[2400,17],[2500,17],[2600,20],
+      [2700,25],[2800,31],[2900,64]
+    ],
+    3: [
+      [300,12],[400,11],[500,12],[600,12],[700,12],[800,12],[900,13],[1000,13],
+      [1100,13],[1200,13],[1300,14],[1400,15],[1600,16],[1700,17],[1800,19],
+      [1900,21],[2000,26],[2100,31],[2200,46]
+    ],
+    2: [
+      [200,15],[300,16],[400,16],[500,16],[600,16],[700,17],[800,18],[900,20],
+      [1000,20],[1100,22],[1200,23],[1300,27],[1400,31],[1500,43],[1600,109]
+    ],
+    1: [
+      [100,28],[200,27],[300,29],[400,31],[500,33],[600,35],[700,42],[800,57],[900,148]
+    ],
+    0: [
+      [50,61],[100,63],[150,66],[200,71],[250,78],[300,95],[350,151]
+    ]
+  },
+
+  // 0-832DU
+  "O832DU": {
+    4: [
+      [400,10],[500,11],[600,10],[700,11],[800,11],[900,12],[1000,12],[1100,12],
+      [1200,13],[1300,13],[1400,14],[1500,14],[1600,15],[1700,16],[1800,17],
+      [1900,19],[2000,22],[2100,26],[2200,34],[2300,65]
+    ],
+    3: [
+      [300,13],[400,14],[500,13],[600,14],[700,14],[800,14],[900,16],[1000,16],
+      [1100,16],[1200,18],[1300,19],[1400,22],[1500,24],[1600,28],[1700,36],[1800,68]
+    ],
+    2: [
+      [200,17],[300,18],[400,18],[500,18],[600,20],[700,20],[800,22],[900,23],
+      [1000,26],[1100,29],[1200,37],[1300,55]
+    ],
+    1: [
+      [100,27],[200,28],[300,29],[400,31],[500,35],[600,40],[700,48],[800,81]
+    ],
+    0: [
+      [50,44],[100,46],[150,47],[200,50],[250,51],[300,58],[350,64],[400,72],[450,101]
+    ]
+  }
+};
+
+/* ===========================
+   Helpers
+   =========================== */
+function updateRingsOptions() {
+  const shell = document.getElementById('shellSelect').value;
+  const ringSel = document.getElementById('ringsSelect');
+  ringSel.innerHTML = '';
+  const rings = Object.keys(ballisticTables[shell]).map(Number).sort((a,b)=>b-a);
+  rings.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = String(r);
+    opt.textContent = `${r}`;
+    ringSel.appendChild(opt);
+  });
+}
+
+function interp(table, x) {
+  if (!table || table.length === 0) return null;
+  if (x < table[0][0] || x > table[table.length-1][0]) return null;
+  for (let i=0;i<table.length-1;i++) {
+    const [x1,y1] = table[i], [x2,y2] = table[i+1];
+    if (x === x1) return y1;
+    if (x === x2) return y2;
+    if (x > x1 && x < x2) {
+      const t = (x - x1) / (x2 - x1);
+      return y1 + t*(y2 - y1);
     }
+  }
+  return null;
+}
 
-    function interpolateVal(data,x){
-      let lower=null,upper=null;
-      for(let i=0;i<data.length;i++){
-        if(data[i].range===x) return data[i].val || data[i].mils;
-        else if(data[i].range<x) lower=data[i];
-        else if(data[i].range>x){ upper=data[i]; break; }
-      }
-      if(!lower||!upper) return null;
-      return (lower.val || lower.mils) + ((x-lower.range)/(upper.range-lower.range))*((upper.val || upper.mils)-(lower.val || lower.mils));
+let chart;
+
+/* ===========================
+   Main
+   =========================== */
+function calculate() {
+  const shell = document.getElementById('shellSelect').value;
+  const rings = parseInt(document.getElementById('ringsSelect').value, 10);
+  const range = parseFloat(document.getElementById('rangeInput').value);
+  const elevDiff = parseFloat(document.getElementById('elevDiffInput').value);
+  const out = document.getElementById('output');
+  const cmp = document.getElementById('milsComparison');
+
+  if (isNaN(range)) { out.textContent = 'Enter valid range.'; return; }
+
+  const btab = ballisticTables[shell]?.[rings];
+  if (!btab) { out.textContent = 'No data for this shell/ring.'; return; }
+
+  const base = interp(btab, range);
+  if (base === null) { out.textContent = 'Range out of table.'; return; }
+
+  let corrected = base;
+  const ctab = elevCorrectionTables[shell]?.[rings];
+  if (!isNaN(elevDiff) && ctab) {
+    const per100 = interp(ctab, range);
+    if (per100 !== null) corrected = base + (elevDiff/100) * per100;
+  }
+
+  out.innerHTML = `Base Elevation: ${base.toFixed(2)} mils<br>Corrected Elevation: ${corrected.toFixed(2)} mils`;
+
+  cmp.innerHTML = `
+    <div><strong>Original Elevation:</strong> ${base.toFixed(2)} mils<br>
+    <strong>Corrected Elevation:</strong> ${corrected.toFixed(2)} mils</div>
+  `;
+
+  // Build chart series over table x-points
+  const labels = btab.map(p => p[0]);
+  const origSeries = btab.map(p => p[1]);
+  const corrSeries = btab.map(([rng]) => {
+    let v = interp(btab, rng);
+    if (!isNaN(elevDiff) && ctab) {
+      const per100 = interp(ctab, rng);
+      if (per100 !== null) v += (elevDiff/100) * per100;
     }
+    return v;
+  });
 
-    function calculateMils(){
-      const shell=document.getElementById("shellSelect").value;
-      const rings=document.getElementById("ringSelect").value;
-      const rangeInput=parseFloat(document.getElementById("rangeInput").value);
-      const elevDiff=parseFloat(document.getElementById("elevDiffInput").value);
-      const applyCorrection=document.getElementById("applyElevCorrection").checked;
-      const result=document.getElementById("result");
-      const milsComparisonDiv = document.getElementById("milsComparison");
+  // Tight y-zoom to see small differences
+  const allVals = origSeries.concat(corrSeries);
+  const minY = Math.min(...allVals) - 5;
+  const maxY = Math.max(...allVals) + 5;
 
-      if(isNaN(rangeInput)||rangeInput<=0){result.textContent="Please enter a valid range."; return;}
-
-      const data=ballisticTables[shell][rings];
-      if(!data){result.textContent="No data available for this configuration."; return;}
-
-      let lower=null,upper=null;
-      for(let i=0;i<data.length;i++){
-        if(data[i].range===rangeInput){ lower=upper=data[i]; break;}
-        else if(data[i].range<rangeInput){ lower=data[i];}
-        else if(data[i].range>rangeInput){ upper=data[i]; break; }
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Original', data: origSeries, borderColor: 'cyan', fill: false },
+        { label: 'Corrected', data: corrSeries, borderColor: 'magenta', fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Range (m)' } },
+        y: { min: minY, max: maxY, title: { display: true, text: 'Elevation (mils)' } }
       }
-      if(!lower||!upper){result.textContent="Range out of bounds."; return;}
-      let mils=(lower===upper)?lower.mils:lower.mils+((rangeInput-lower.range)/(upper.range-lower.range))*(upper.mils-lower.mils);
-
-      result.innerHTML = `Elevation: ${mils.toFixed(2)} mils`;
-
-      // Chart data
-      let chartLabels = data.map(d=>d.range);
-      let chartOriginal = data.map(d=>d.mils);
-      let chartCorrected = [...chartOriginal];
-
-      if(shell=="M821_HE"){
-        const table=elevCorrectionTables["M821_HE"][rings];
-        if(table.length>0){
-          chartCorrected = chartCorrected.map((v,idx)=>{
-            const per100=interpolateVal(table, chartLabels[idx]);
-            let correction=0;
-            if(applyCorrection && !isNaN(elevDiff) && elevDiff!==0 && per100!==null){
-              correction = (elevDiff/100) * per100;
-            }
-            return v + correction;
-          });
-        }
-      }
-
-      // Numeric comparison
-      let origAtRange = interpolateVal(data, rangeInput);
-      let corrAtRange = origAtRange;
-      if(shell=="M821_HE" && applyCorrection && !isNaN(elevDiff)){
-        const table=elevCorrectionTables["M821_HE"][rings];
-        const per100=interpolateVal(table, rangeInput);
-        if(per100!==null){
-          corrAtRange += (elevDiff/100) * per100;
-        }
-      }
-      milsComparisonDiv.innerHTML = `
-        <div>
-          <strong>Original Elevation:</strong> ${origAtRange.toFixed(2)} mils<br>
-          <strong>Corrected Elevation:</strong> ${corrAtRange.toFixed(2)} mils
-        </div>
-      `;
-
-      // Zoomed Y-axis
-      const allValues = chartOriginal.concat(chartCorrected);
-      const minY = Math.min(...allValues) - 2;
-      const maxY = Math.max(...allValues) + 2;
-
-      const ctx=document.getElementById('comparisonChart').getContext('2d');
-      if(chartInstance) chartInstance.destroy();
-      chartInstance = new Chart(ctx, {
-        type:'line',
-        data:{
-          labels: chartLabels,
-          datasets:[
-            { label: "Original Elevation", data: chartOriginal, borderColor:'blue', fill:false },
-            { label: "Corrected Elevation", data: chartCorrected, borderColor:'red', fill:false }
-          ]
-        },
-        options:{
-          responsive:true,
-          scales:{
-            x:{ title:{ display:true, text:'Range (m)' } },
-            y:{ min:minY, max:maxY, title:{ display:true, text:'Elevation (mils)' } }
-          }
-        }
-      });
     }
+  });
+}
 
-    updateRingsOptions();
-  </script>
+// Initialize
+updateRingsOptions();
+</script>
 </body>
 </html>

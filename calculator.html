@@ -2,54 +2,62 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Mortar Trajectory Visualizer (fixed)</title>
+<title>Mortar Trajectory Visualizer</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root{
-    --bg:#121212; --panel:#1e1e1e; --text:#eee; --muted:#9aa; --accent:#2d7dff;
-    --card-radius:14px; --input-radius:10px; --button-radius:12px;
-  }
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family: Inter, Arial, sans-serif;
-    margin:20px;
-    -webkit-font-smoothing:antialiased;
-  }
-  .card{
-    background:var(--panel);
-    border-radius:var(--card-radius);
-    padding:18px;
-    max-width:880px;
-    margin:0 auto 18px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  }
-  h2{margin:0 0 8px 0}
-  label{display:block; margin:12px 0 6px}
-  .hint{color:var(--muted); font-size:0.9em}
-  select,input,button{
-    width:100%; padding:12px; border-radius:var(--input-radius); box-sizing:border-box;
-    border:1px solid #333; background:#141414; color:var(--text); font-size:1rem;
-  }
-  button{ background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; border-radius:var(--button-radius)}
-  .row { display:flex; gap:12px; }
-  .col { flex:1; }
-  #output, #milsComparison { margin-top:10px; font-weight:700 }
-  .chart-wrap { width:820px; max-width:100%; height:420px; }
-  canvas { background:#111; border-radius:12px; display:block; width:100%; height:100%; }
-  .small { font-size:0.9em; color:var(--muted); margin-top:4px }
-  @media (max-width:720px){
-    .row{flex-direction:column;}
-    .chart-wrap { width:100%; height:360px; }
-  }
+:root{
+  --bg:#121212; --panel:#1e1e1e; --text:#eee; --muted:#9aa; --accent:#2d7dff;
+  --card-radius:14px; --input-radius:10px; --button-radius:12px;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family: Inter, Arial, sans-serif;
+  margin:20px;
+  -webkit-font-smoothing:antialiased;
+}
+.card{
+  background:var(--panel);
+  border-radius:var(--card-radius);
+  padding:18px;
+  max-width:880px;
+  margin:0 auto 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+h2,h3{margin:0 0 8px 0}
+label{display:block; margin:12px 0 6px}
+.hint{color:var(--muted); font-size:0.9em}
+select,input,button{
+  width:100%; padding:12px; border-radius:var(--input-radius); box-sizing:border-box;
+  border:1px solid #333; background:#141414; color:var(--text); font-size:1rem;
+}
+button{ background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; border-radius:var(--button-radius)}
+.row { display:flex; gap:12px; }
+.col { flex:1; }
+#output, #milsComparison { margin-top:10px; font-weight:700 }
+.chart-wrap { width:820px; max-width:100%; height:420px; }
+canvas { background:#111; border-radius:12px; display:block; width:100%; height:100%; }
+.small { font-size:0.9em; color:var(--muted); margin-top:4px }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th,td { border:1px solid #444; padding:6px; text-align:center; }
+th { background:#1a1a1a; }
+@media (max-width:720px){
+  .row{flex-direction:column;}
+  .chart-wrap { width:100%; height:360px; }
+}
 </style>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <div class="card">
   <h2>Mortar Trajectory Visualizer</h2>
+
+  <label for="nameInput">Name</label>
+  <input id="nameInput" type="text" placeholder="Optional" />
+
+  <label for="bearingInput">Bearing</label>
+  <input id="bearingInput" type="number" placeholder="Optional" />
 
   <label for="shellSelect">Shell Type</label>
   <select id="shellSelect" onchange="updateRingsOptions()">
@@ -59,19 +67,19 @@
     <option value="O832DU">0-832DU</option>
   </select>
 
-  <div class="row">
-    <div class="col">
-      <label for="ringsSelect">Charge Rings</label>
-      <select id="ringsSelect"></select>
-    </div>
-    <div class="col">
-      <label for="rangeInput">Target Range (m)</label>
-      <input id="rangeInput" type="number" placeholder="e.g., 1200" />
-    </div>
-  </div>
+  <label for="ringsSelect">Charge Rings</label>
+  <select id="ringsSelect"></select>
 
-  <label for="elevDiffInput">Target Elevation Difference (m) — <span class="hint">Use <strong>-m</strong> if target is above you, <strong>+m</strong> if target is below you.</span></label>
-  <input id="elevDiffInput" type="number" placeholder="e.g., -50 (above), +50 (below)" />
+  <label for="rangeInput">Target Range (m)</label>
+  <input id="rangeInput" type="number" placeholder="e.g., 1200" />
+
+  <label for="elevDiffInput">Target Elevation Difference (m)</label>
+  <input id="elevDiffInput" type="number" placeholder="e.g., -50" />
+    <div class="small" style="margin-top:6px; color:#bbb;">
+    Example:<br>
+    Player 100 m, Target 50 m → Elevation Difference: +50 m<br>
+    Player 100 m, Target 150 m → Elevation Difference: -50 m
+  </div>
 
   <div class="row" style="margin-top:12px">
     <div style="flex:1"><button onclick="calculate()">Show trajectories</button></div>
@@ -82,14 +90,50 @@
 </div>
 
 <div class="card">
+  <h2>Elevation Difference Calculator</h2>
+
+  <label for="playerElev">Your Elevation (m)</label>
+  <input id="playerElev" type="number" placeholder="e.g., 100" />
+
+  <label for="targetElev">Target Elevation (m)</label>
+  <input id="targetElev" type="number" placeholder="e.g., 200" />
+
+  <div class="row" style="margin-top:12px">
+    <div style="flex:1"><button onclick="calculateDifference()">Calculate Difference</button></div>
+  </div>
+
+  <div id="elevDiffResult" class="small" style="margin-top:6px; color:#ddd;"></div>
+</div>
+
+<div class="card">
+  <h3>History</h3>
+  <button onclick="clearHistory()" style="margin-bottom:8px;">Clear History</button>
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Shell</th>
+        <th>Rings</th>
+        <th>Range (m)</th>
+        <th>Bearing (°)</th>
+        <th>Elevation Diff (m)</th>
+        <th>Base Elevation (mils)</th>
+        <th>Corrected Elevation (mils)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="card">
   <h3>Trajectory (original vs corrected)</h3>
   <div id="milsComparison"></div>
   <div class="chart-wrap"><canvas id="trajChart"></canvas></div>
-  <div class="small">Note: arcs are a visual approximation (parabolic shape anchored at 0 and target range). This is for visualization only.</div>
+  <div class="small">Note: arcs are a visual approximation (parabolic shape). For visualization only.</div>
 </div>
 
 <script>
-/* ---------- ballistic & correction tables  ---------- */
+/* ---------- ballistic & correction tables ---------- */
 const ballisticTables = {
   "M821_HE": {
     4: [[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
@@ -136,15 +180,14 @@ const elevCorrectionTables = {
   }
 };
 
+
 /* ---------- helpers ---------- */
 function updateRingsOptions(){
   const shell = document.getElementById('shellSelect').value;
   const sel = document.getElementById('ringsSelect');
   sel.innerHTML = '';
   const rings = Object.keys(ballisticTables[shell]).map(Number).sort((a,b)=>b-a);
-  rings.forEach(r => {
-    const o = document.createElement('option'); o.value = r; o.textContent = String(r); sel.appendChild(o);
-  });
+  rings.forEach(r => { const o = document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
 }
 updateRingsOptions();
 
@@ -152,129 +195,133 @@ function interp(table,x){
   if(!table || table.length===0) return null;
   if (x === table[0][0]) return table[0][1];
   for(let i=0;i<table.length-1;i++){
-    const [x1,y1] = table[i], [x2,y2] = table[i+1];
+    const [x1,y1]=table[i], [x2,y2]=table[i+1];
     if(x === x2) return y2;
-    if(x > x1 && x < x2){
-      const t = (x - x1)/(x2 - x1);
-      return y1 + t*(y2 - y1);
-    }
+    if(x > x1 && x < x2){ const t=(x-x1)/(x2-x1); return y1+t*(y2-y1);}
   }
-  // exact last
   if (x === table[table.length-1][0]) return table[table.length-1][1];
   return null;
 }
 
 /* ---------- trajectory model ---------- */
-function buildArc(range, mils, samples=80){
-  if (mils === null || isNaN(mils)){
-    return Array.from({length:samples+1}, (_,i) => ({x: range * (i/samples), y: 0}));
-  }
-  const theta = mils / 1000; // approx radians
-  let H = Math.abs(Math.tan(theta)) * range / 4;
-  H = Math.max(H, Math.max(10, range * 0.02));
-  const pts = [];
-  for (let i=0;i<=samples;i++){
-    const x = range * (i/samples);
-    const t = x / range;
-    const y = 4 * H * t * (1 - t);
+function buildArc(range,mils,samples=80){
+  if (mils===null || isNaN(mils)) return Array.from({length:samples+1}, (_,i)=>({x:range*(i/samples),y:0}));
+  const theta = mils/1000;
+  let H = Math.abs(Math.tan(theta))*range/4;
+  H = Math.max(H, Math.max(10, range*0.02));
+  const pts=[];
+  for(let i=0;i<=samples;i++){
+    const x=range*(i/samples);
+    const t=x/range;
+    const y=4*H*t*(1-t);
     pts.push({x,y});
   }
   return pts;
 }
 
-let trajChart = null;
+let trajChart=null;
+
+function calculateDifference(){
+  const player = parseFloat(document.getElementById('playerElev').value);
+  const target = parseFloat(document.getElementById('targetElev').value);
+  if(isNaN(player) || isNaN(target)){
+    document.getElementById('elevDiffResult').textContent='Enter both elevations';
+    return;
+  }
+  const diff = Math.abs(target - player); // absolute value, always positive
+  document.getElementById('elevDiffResult').textContent = `Elevation Difference: ${diff} m`;
+}
 
 function calculate(){
   const shell = document.getElementById('shellSelect').value;
   const rings = parseInt(document.getElementById('ringsSelect').value,10);
   const range = parseFloat(document.getElementById('rangeInput').value);
   const elevDiff = parseFloat(document.getElementById('elevDiffInput').value);
+  const name = document.getElementById('nameInput').value || '';
+  const bearing = document.getElementById('bearingInput').value || '';
   const out = document.getElementById('output');
   const cmp = document.getElementById('milsComparison');
 
-  if (isNaN(range) || range <= 0) { out.textContent = 'Enter a valid target range (meters).'; return; }
-
+  if(isNaN(range)||range<=0){out.textContent='Enter valid target range'; return;}
   const btab = ballisticTables[shell]?.[rings];
-  if (!btab) { out.textContent = 'No ballistic data for that shell/rings.'; return; }
+  if(!btab){out.textContent='No ballistic data'; return;}
+  const baseMils = interp(btab,range);
+  if(baseMils===null){out.textContent='Range out of bounds'; return;}
 
-  const baseMils = interp(btab, range);
-  if (baseMils === null) { out.textContent = 'Range out of table bounds for this configuration.'; return; }
-
-  // corrected mils
   let correctedMils = baseMils;
   const ctab = elevCorrectionTables[shell]?.[rings];
-  if (!isNaN(elevDiff) && ctab) {
-    const per100 = interp(ctab, range);
-    if (per100 !== null) correctedMils = baseMils + (elevDiff/100) * per100;
+  if(!isNaN(elevDiff) && ctab){
+    const per100 = interp(ctab,range);
+    if(per100!==null) correctedMils = baseMils + (elevDiff/100)*per100;
   }
 
   out.innerHTML = `Base elevation: <strong>${baseMils.toFixed(2)} mils</strong><br>` +
                   `Corrected elevation: <strong>${correctedMils.toFixed(2)} mils</strong>`;
-
   cmp.innerHTML = `<div><strong>At ${range} m:</strong> Original = ${baseMils.toFixed(2)} mils, Corrected = ${correctedMils.toFixed(2)} mils</div>`;
 
+  const samples = Math.max(40,Math.min(240,Math.round(range/10)));
+  const arcOrig = buildArc(range,baseMils,samples);
+  const arcCorr = buildArc(range,correctedMils,samples);
 
-  const samples = Math.max(40, Math.min(240, Math.round(range/10)));
-  const arcOrig = buildArc(range, baseMils, samples);
-  const arcCorr = buildArc(range, correctedMils, samples);
-
-  const origData = arcOrig.map(p => ({x: p.x, y: p.y}));
-  const corrData = arcCorr.map(p => ({x: p.x, y: p.y}));
-  const impactOrig = [{x: range, y: 0}];
-  const impactCorr = [{x: range, y: 0}];
-
+  const origData = arcOrig.map(p=>({x:p.x,y:p.y}));
+  const corrData = arcCorr.map(p=>({x:p.x,y:p.y}));
+  const impactOrig = [{x:range,y:0}];
+  const impactCorr = [{x:range,y:0}];
 
   const allY = origData.map(p=>p.y).concat(corrData.map(p=>p.y));
   const maxY = Math.max(...allY);
-  const yPadding = Math.max(10, maxY * 0.08);
+  const yPadding = Math.max(10,maxY*0.08);
 
   const canvas = document.getElementById('trajChart');
-
-  canvas.width = canvas.clientWidth; 
+  canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
 
-
-  if (trajChart) { trajChart.destroy(); trajChart = null; }
-
+  if(trajChart){trajChart.destroy(); trajChart=null;}
   const ctx = canvas.getContext('2d');
 
-
-  trajChart = new Chart(ctx, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        { label: 'Original trajectory', data: origData, showLine:true, borderColor:'rgba(60,150,255,0.95)', pointRadius:0, borderWidth:2, tension:0.25 },
-        { label: 'Corrected trajectory', data: corrData, showLine:true, borderColor:'rgba(255,165,60,0.95)', pointRadius:0, borderWidth:2, tension:0.25 },
-        { label: 'Original impact', data: impactOrig, showLine:false, pointStyle:'triangle', pointRadius:8, backgroundColor:'rgba(60,150,255,1)', borderColor:'#000', borderWidth:1 },
-        { label: 'Corrected impact', data: impactCorr, showLine:false, pointStyle:'rectRounded', pointRadius:8, backgroundColor:'rgba(255,165,60,1)', borderColor:'#000', borderWidth:1 }
-      ]
-    },
-    options: {
-      responsive: false,             
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: { legend:{ labels:{ color:'#ddd' } }, tooltip: {
-        callbacks: { label: function(ctx){ return `x: ${ctx.parsed.x.toFixed(0)} m, y: ${ctx.parsed.y.toFixed(1)} m`; } }
-      }},
-      scales: {
-        x: { type:'linear', title:{display:true,text:'Distance (m)', color:'#ddd'}, ticks:{ color:'#ddd' }, grid:{ color:'#222' }, min:0, max: Math.max(range, 50) },
-        y: { title:{display:true,text:'Height (m) (visual)', color:'#ddd'}, ticks:{ color:'#ddd' }, grid:{ color:'#222' }, min: -yPadding*0.2, max: maxY + yPadding }
+  trajChart = new Chart(ctx,{
+    type:'scatter',
+    data:{ datasets:[
+      {label:'Original trajectory', data:origData, showLine:true, borderColor:'rgba(60,150,255,0.95)', pointRadius:0, borderWidth:2, tension:0.25},
+      {label:'Corrected trajectory', data:corrData, showLine:true, borderColor:'rgba(255,165,60,0.95)', pointRadius:0, borderWidth:2, tension:0.25}
+    ]},
+    options:{
+      responsive:false,
+      maintainAspectRatio:false,
+      animation:false,
+      plugins:{ legend:{ labels:{ color:'#ddd' } }, tooltip:{ callbacks:{ label: function(ctx){ return `x: ${ctx.parsed.x.toFixed(0)} m, y: ${ctx.parsed.y.toFixed(1)} m`; } } } },
+      scales:{
+        x:{ type:'linear', title:{display:true,text:'Distance (m)', color:'#ddd'}, ticks:{color:'#ddd'}, grid:{color:'#222'}, min:0, max: Math.max(range,50) },
+        y:{ title:{display:true,text:'Height (m) (visual)', color:'#ddd'}, ticks:{color:'#ddd'}, grid:{color:'#222'}, min:-yPadding*0.2, max:maxY+yPadding }
       }
     }
   });
+
+  // Add to history
+  const histTable = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
+  const row = histTable.insertRow();
+  row.insertCell().textContent = name;
+  row.insertCell().textContent = shell;
+  row.insertCell().textContent = rings;
+  row.insertCell().textContent = range;
+  row.insertCell().textContent = bearing;
+  row.insertCell().textContent = elevDiff >=0 ? '+'+elevDiff : elevDiff;
+  row.insertCell().textContent = baseMils.toFixed(2);
+  row.insertCell().textContent = correctedMils.toFixed(2);
 }
 
 function resetView(){
-  document.getElementById('rangeInput').value = '';
-  document.getElementById('elevDiffInput').value = '';
-  document.getElementById('output').textContent = '';
-  document.getElementById('milsComparison').textContent = '';
-  if (trajChart) { trajChart.destroy(); trajChart = null; }
+  document.getElementById('rangeInput').value='';
+  document.getElementById('elevDiffInput').value='';
+  document.getElementById('output').textContent='';
+  document.getElementById('milsComparison').textContent='';
+  if(trajChart){trajChart.destroy(); trajChart=null;}
 }
 
-
-updateRingsOptions();
+function clearHistory(){
+  const tbody = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
+  tbody.innerHTML='';
+}
 </script>
 </body>
 </html>
-

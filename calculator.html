@@ -86,7 +86,7 @@ th { background:#1a1a1a; }
   <div id="spreadOutput" class="small" style="margin-top:6px; color:#ddd;"></div>
 
   <div class="row" style="margin-top:12px">
-    <div style="flex:1"><button onclick="calculate()">Show trajectories</button></div>
+    <div style="flex:1"><button onclick="calculate()">Calculate</button></div>
     <div style="width:200px"><button onclick="resetView()" style="background:#444">Reset view</button></div>
   </div>
 
@@ -131,7 +131,7 @@ th { background:#1a1a1a; }
 </div>
 
 <script>
-  
+
 const ballisticTables = {
   "M821_HE": {
     4: [[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
@@ -192,7 +192,7 @@ updateRingsOptions();
 function cubicInterp(table, x) {
   if (!table || table.length === 0) return null;
   let xs = table.map(p=>p[0]), ys = table.map(p=>p[1]);
-
+  // simple cubic Hermite using local slope
   for(let i=0;i<xs.length-1;i++){
     if(x >= xs[i] && x <= xs[i+1]){
       let x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1];
@@ -210,7 +210,6 @@ const spreadInput = document.getElementById('spreadInput');
 const spreadSlider = document.getElementById('spreadSlider');
 spreadInput.addEventListener('input',()=>{spreadSlider.value=spreadInput.value; updateSpreadMils();});
 spreadSlider.addEventListener('input',()=>{spreadInput.value=spreadSlider.value; updateSpreadMils();});
-
 
 function calculateDifference(){
   const player = parseFloat(document.getElementById('playerElev').value);

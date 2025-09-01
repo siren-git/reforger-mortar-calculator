@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Mortar Trajectory Visualizer</title>
+<title>Mortar Calculator</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
 :root{
@@ -34,12 +34,11 @@ select,input,button{
 button{ background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; border-radius:var(--button-radius)}
 .row { display:flex; gap:12px; }
 .col { flex:1; }
-#output, #milsComparison { margin-top:10px; font-weight:700 }
-.small { font-size:0.9em; color:var(--muted); margin-top:4px }
+#output, #milsComparison, #spreadOutput { margin-top:10px; font-weight:700 }
 table { width:100%; border-collapse:collapse; margin-top:12px; }
 th,td { border:1px solid #444; padding:6px; text-align:center; }
 th { background:#1a1a1a; }
-.history-btn { background:#e74c3c; padding:4px 8px; border-radius:6px; font-size:0.8rem; margin:0; cursor:pointer; }
+.remove-btn { background:#a33; color:#fff; padding:2px 6px; font-size:0.8em; border-radius:6px; cursor:pointer; }
 @media (max-width:720px){
   .row{flex-direction:column;}
 }
@@ -48,7 +47,7 @@ th { background:#1a1a1a; }
 <body>
 
 <div class="card">
-  <h2>Mortar Trajectory Visualizer</h2>
+  <h2>Mortar Calculator</h2>
 
   <label for="nameInput">Name</label>
   <input id="nameInput" type="text" placeholder="Optional" />
@@ -72,14 +71,22 @@ th { background:#1a1a1a; }
 
   <label for="elevDiffInput">Target Elevation Difference (m)</label>
   <input id="elevDiffInput" type="number" placeholder="e.g., -50" />
-    <div class="small" style="margin-top:6px; color:#bbb;">
+  <div class="small" style="margin-top:6px; color:#bbb;">
     Example:<br>
-    Player 100 m, Target 50 m → Elevation Difference: +50 m<br>
+    Player 100 m, Target 50 m → Elevation Difference: 50 m<br>
     Player 100 m, Target 150 m → Elevation Difference: -50 m
   </div>
 
+  <label for="spreadInput">Spread Range (m)</label>
+  <div class="row" style="align-items:center;">
+    <input id="spreadInput" type="number" value="10" min="1" max="100" style="flex:1;" />
+    <input id="spreadSlider" type="range" min="1" max="100" value="10" style="flex:2;" />
+  </div>
+  <div class="small">Set the desired impact spread range (meters).</div>
+  <div id="spreadOutput" class="small" style="margin-top:6px; color:#ddd;"></div>
+
   <div class="row" style="margin-top:12px">
-    <div style="flex:1"><button onclick="calculate()">Calculate</button></div>
+    <div style="flex:1"><button onclick="calculate()">Show trajectories</button></div>
     <div style="width:200px"><button onclick="resetView()" style="background:#444">Reset view</button></div>
   </div>
 
@@ -104,6 +111,7 @@ th { background:#1a1a1a; }
 
 <div class="card">
   <h3>History</h3>
+  <button onclick="clearHistory()" style="margin-bottom:8px;">Clear History</button>
   <table id="historyTable">
     <thead>
       <tr>
@@ -115,7 +123,7 @@ th { background:#1a1a1a; }
         <th>Elevation Diff (m)</th>
         <th>Base Elevation (mils)</th>
         <th>Corrected Elevation (mils)</th>
-        <th>Action</th>
+        <th>Remove</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -123,7 +131,7 @@ th { background:#1a1a1a; }
 </div>
 
 <script>
-
+  
 const ballisticTables = {
   "M821_HE": {
     4: [[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
@@ -170,37 +178,45 @@ const elevCorrectionTables = {
   }
 };
 
+
 function updateRingsOptions(){
   const shell = document.getElementById('shellSelect').value;
   const sel = document.getElementById('ringsSelect');
   sel.innerHTML = '';
-  const rings = Object.keys(ballisticTables[shell]).map(Number).sort((a,b)=>b-a);
+  const rings = Object.keys(ballisticTables[shell] || {}).map(Number).sort((a,b)=>b-a);
   rings.forEach(r => { const o = document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
 }
 updateRingsOptions();
 
-function cubicInterp(table, x){
-  if(!table || table.length===0) return null;
-  if(x <= table[0][0]) return table[0][1];
-  if(x >= table[table.length-1][0]) return table[table.length-1][1];
 
-  for(let i=0;i<table.length-1;i++){
-    const [x0,y0]=table[i], [x1,y1]=table[i+1];
-    if(x>=x0 && x<=x1){
-      const t=(x-x0)/(x1-x0);
-      const h00 = (1+2*t)*(1-t)*(1-t);
-      const h01 = t*t*(3-2*t);
-      return h00*y0 + h01*y1;
+function cubicInterp(table, x) {
+  if (!table || table.length === 0) return null;
+  let xs = table.map(p=>p[0]), ys = table.map(p=>p[1]);
+
+  for(let i=0;i<xs.length-1;i++){
+    if(x >= xs[i] && x <= xs[i+1]){
+      let x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1];
+      let t=(x-x0)/(x1-x0);
+      return y0*(1-t)+y1*t; 
     }
   }
+  if(x<=xs[0]) return ys[0];
+  if(x>=xs[xs.length-1]) return ys[xs.length-1];
   return null;
 }
+
+
+const spreadInput = document.getElementById('spreadInput');
+const spreadSlider = document.getElementById('spreadSlider');
+spreadInput.addEventListener('input',()=>{spreadSlider.value=spreadInput.value; updateSpreadMils();});
+spreadSlider.addEventListener('input',()=>{spreadInput.value=spreadSlider.value; updateSpreadMils();});
+
 
 function calculateDifference(){
   const player = parseFloat(document.getElementById('playerElev').value);
   const target = parseFloat(document.getElementById('targetElev').value);
-  if(isNaN(player) || isNaN(target)){document.getElementById('elevDiffResult').textContent='Enter both elevations'; return;}
-  const diff = target - player;
+  if(isNaN(player)||isNaN(target)){document.getElementById('elevDiffResult').textContent='Enter both elevations'; return;}
+  const diff = target-player;
   document.getElementById('elevDiffResult').textContent = `Elevation Difference: ${diff} m`;
 }
 
@@ -212,30 +228,25 @@ function calculate(){
   const name = document.getElementById('nameInput').value || '';
   const bearing = document.getElementById('bearingInput').value || '';
   const out = document.getElementById('output');
-
   if(isNaN(range)||range<=0){out.textContent='Enter valid target range'; return;}
   const btab = ballisticTables[shell]?.[rings];
   if(!btab){out.textContent='No ballistic data'; return;}
   const baseMils = cubicInterp(btab,range);
-  if(baseMils===null){out.textContent='Range out of bounds'; return;}
-
   let correctedMils = baseMils;
   const ctab = elevCorrectionTables[shell]?.[rings];
-  if(!isNaN(elevDiff) && ctab){
+  if(!isNaN(elevDiff)&&ctab){
     const per100 = cubicInterp(ctab,range);
-    if(per100!==null) correctedMils = baseMils + (elevDiff/100)*per100;
+    if(per100!==null) correctedMils = baseMils+(elevDiff/100)*per100;
   }
 
-  const spreadMils = [correctedMils-5, correctedMils-2.5, correctedMils, correctedMils+2.5, correctedMils+5];
+  out.innerHTML = `Base elevation: <strong>${baseMils.toFixed(2)} mils</strong><br>` +
+                  `Corrected elevation: <strong>${correctedMils.toFixed(2)} mils</strong>`;
 
-  out.innerHTML = `
-    Base elevation: <strong>${baseMils.toFixed(2)} mils</strong><br>
-    Corrected elevation: <strong>${correctedMils.toFixed(2)} mils</strong><br>
-    Suggested spread adjustments (mils): ${spreadMils.map(m=>m.toFixed(2)).join(', ')}
-  `;
+  updateSpreadMils(correctedMils);
 
-  const histTable = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
-  const row = histTable.insertRow();
+
+  const tbody = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
+  const row = tbody.insertRow();
   row.insertCell().textContent = name;
   row.insertCell().textContent = shell;
   row.insertCell().textContent = rings;
@@ -244,19 +255,45 @@ function calculate(){
   row.insertCell().textContent = elevDiff;
   row.insertCell().textContent = baseMils.toFixed(2);
   row.insertCell().textContent = correctedMils.toFixed(2);
+  const rmCell = row.insertCell();
+  const rmBtn = document.createElement('button');
+  rmBtn.className='remove-btn'; rmBtn.textContent='Remove';
+  rmBtn.onclick=()=>row.remove();
+  rmCell.appendChild(rmBtn);
+}
 
-  const actionCell = row.insertCell();
-  const delBtn = document.createElement('button');
-  delBtn.textContent = 'Delete';
-  delBtn.className = 'history-btn';
-  delBtn.onclick = () => row.remove();
-  actionCell.appendChild(delBtn);
+function updateSpreadMils(correctedMils=null){
+  const range = parseFloat(document.getElementById('rangeInput').value);
+  const elevDiff = parseFloat(document.getElementById('elevDiffInput').value);
+  const spreadMeters = parseFloat(spreadInput.value);
+  if(isNaN(range)||isNaN(spreadMeters)) return;
+
+  const shell = document.getElementById('shellSelect').value;
+  const rings = parseInt(document.getElementById('ringsSelect').value,10);
+  const btab = ballisticTables[shell]?.[rings];
+  if(!btab) return;
+  if(correctedMils===null){
+    const baseMils=cubicInterp(btab,range);
+    correctedMils=baseMils;
+    const ctab = elevCorrectionTables[shell]?.[rings];
+    if(!isNaN(elevDiff)&&ctab){
+      const per100 = cubicInterp(ctab,range);
+      if(per100!==null) correctedMils = baseMils+(elevDiff/100)*per100;
+    }
+  }
+
+
+  const deltaMils=spreadMeters*1;
+  const minMils=correctedMils-deltaMils/2;
+  const maxMils=correctedMils+deltaMils/2;
+  document.getElementById('spreadOutput').textContent = `Suggested spread mils: ${minMils.toFixed(2)} – ${maxMils.toFixed(2)} mils`;
 }
 
 function resetView(){
   document.getElementById('rangeInput').value='';
   document.getElementById('elevDiffInput').value='';
   document.getElementById('output').textContent='';
+  document.getElementById('spreadOutput').textContent='';
 }
 
 function clearHistory(){

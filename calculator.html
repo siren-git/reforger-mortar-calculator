@@ -1,47 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8">
 <title>Mortar Calculator</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{
-  --bg:#121212; --panel:#1e1e1e; --text:#eee; --muted:#9aa; --accent:#2d7dff;
-  --card-radius:14px; --input-radius:10px; --button-radius:12px;
+  --bg:#121212; --panel:#1c1c1c; --text:#eee; --muted:#777; --accent:#333; 
+  --card-radius:8px; --input-radius:6px; --button-radius:8px;
 }
 body{
   background:var(--bg);
   color:var(--text);
   font-family: Inter, Arial, sans-serif;
-  margin:20px;
-  -webkit-font-smoothing:antialiased;
+  margin:12px;
+  font-size:1rem;
 }
 .card{
   background:var(--panel);
   border-radius:var(--card-radius);
-  padding:18px;
-  max-width:880px;
-  margin:0 auto 18px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  padding:16px;
+  max-width:1000px;
+  margin:0 auto 12px;
+  box-shadow:0 6px 16px rgba(0,0,0,0.5);
 }
-h2,h3{margin:0 0 8px 0}
-label{display:block; margin:12px 0 6px}
-.hint{color:var(--muted); font-size:0.9em}
-select,input,button{
-  width:100%; padding:12px; border-radius:var(--input-radius); box-sizing:border-box;
-  border:1px solid #333; background:#141414; color:var(--text); font-size:1rem;
-}
-button{ background:var(--accent); color:#fff; border:none; font-weight:600; cursor:pointer; border-radius:var(--button-radius)}
-.row { display:flex; gap:12px; }
-.col { flex:1; }
-#output, #milsComparison, #spreadOutput { margin-top:10px; font-weight:700 }
-table { width:100%; border-collapse:collapse; margin-top:12px; }
-th,td { border:1px solid #444; padding:6px; text-align:center; }
-th { background:#1a1a1a; }
-.remove-btn { background:#a33; color:#fff; padding:2px 6px; font-size:0.8em; border-radius:6px; cursor:pointer; }
-@media (max-width:720px){
-  .row{flex-direction:column;}
-}
+h2,h3{margin:0 0 6px; font-size:1.2rem;}
+label{margin:4px 0 4px; font-size:0.95rem;}
+input,select,button{font-size:1rem; border-radius:var(--input-radius); padding:8px; background:#222; color:#eee; border:1px solid #444;}
+button{background:#333; color:#eee; font-weight:600; cursor:pointer; border-radius:var(--button-radius);}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.col{flex:1;}
+#output,#spreadOutput,#totOutput{margin-top:6px;font-weight:600;}
+.small{font-size:0.85rem;color:var(--muted);margin-top:4px;}
+table{width:100%;border-collapse:collapse;margin-top:6px;font-size:0.85rem;}
+th,td{border:1px solid #444;padding:4px;text-align:center;}
+th{background:#1a1a1a;}
+.switch{position:relative;display:inline-block;width:50px;height:26px;}
+.switch input{display:none;}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#444;transition:.3s;border-radius:26px;}
+.slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:white;transition:.3s;border-radius:50%;}
+input:checked + .slider{background-color:#555;}
+input:checked + .slider:before{transform:translateX(24px);}
 </style>
 </head>
 <body>
@@ -49,174 +48,163 @@ th { background:#1a1a1a; }
 <div class="card">
   <h2>Mortar Calculator</h2>
 
-  <label for="nameInput">Name</label>
-  <input id="nameInput" type="text" placeholder="Optional" />
-
-  <label for="bearingInput">Bearing</label>
-  <input id="bearingInput" type="number" placeholder="Optional" />
-
-  <label for="shellSelect">Shell Type</label>
-  <select id="shellSelect" onchange="updateRingsOptions()">
-    <option value="M821_HE">M821 HE</option>
-    <option value="M819_Smoke">M819 Smoke</option>
-    <option value="M853A1_Illum">M853A1 Illumination</option>
-    <option value="O832DU">0-832DU</option>
-  </select>
-
-  <label for="ringsSelect">Charge Rings</label>
-  <select id="ringsSelect"></select>
-
-  <label for="rangeInput">Target Range (m)</label>
-  <input id="rangeInput" type="number" placeholder="e.g., 1200" />
-
-  <label for="elevDiffInput">Target Elevation Difference (m)</label>
-  <input id="elevDiffInput" type="number" placeholder="e.g., -50" />
-  <div class="small" style="margin-top:6px; color:#bbb;">
-    Example:<br>
-    Player 100 m, Target 50 m → Elevation Difference: 50 m<br>
-    Player 100 m, Target 150 m → Elevation Difference: -50 m
+  <div class="row" style="justify-content:space-between;">
+    <input id="nameInput" type="text" placeholder="Name" style="flex:1; margin-right:8px;">
+    <input id="bearingInput" type="number" placeholder="Bearing °" style="flex:1; margin-right:8px;">
+    <select id="shellSelect" onchange="updateRingsOptions()" style="flex:1; margin-right:8px;">
+      <option value="0832DU">0-832DU</option>
+      <option value="M821_HE">M821 HE</option>
+    </select>
+    <select id="ringsSelect" style="flex:1;"></select>
   </div>
 
-  <label for="spreadInput">Spread Range (m)</label>
-  <div class="row" style="align-items:center;">
-    <input id="spreadInput" type="number" value="10" min="1" max="100" style="flex:1;" />
-    <input id="spreadSlider" type="range" min="1" max="100" value="10" style="flex:2;" />
+  <div class="row" style="justify-content:space-between; margin-top:8px;">
+    <input id="rangeInput" type="number" placeholder="Range (m)" style="flex:1; margin-right:8px;">
+    <input id="elevDiffInput" type="number" placeholder="Elevation Diff (m)" style="flex:1; margin-right:8px;">
+    <input id="spreadManual" type="number" min="0" max="50" value="10" placeholder="Spread m" style="flex:1; margin-right:8px;">
+    <button onclick="calculate()" style="flex:1; margin-right:8px;">Calc</button>
+    <button onclick="resetView()" style="flex:1;">Reset</button>
   </div>
-  <div class="small">Set the desired impact spread range (meters).</div>
-  <div id="spreadOutput" class="small" style="margin-top:6px; color:#ddd;"></div>
 
-  <div class="row" style="margin-top:12px">
-    <div style="flex:1"><button onclick="calculate()">Calculate</button></div>
-    <div style="width:200px"><button onclick="resetView()" style="background:#444">Reset view</button></div>
+  <div class="row" style="margin-top:8px; align-items:center; gap:12px;">
+    <input id="spreadRange" type="range" min="0" max="20" value="10" oninput="updateSpreadDisplay('slider')" style="flex:2;">
+    <div class="small" id="spreadDisplay" style="flex:1;">Spread: 10 m</div>
+    <label class="switch" style="flex:none;"><input type="checkbox" id="totToggle"><span class="slider"></span></label>
+    <div class="small" style="flex:none;">Enable TOT</div>
   </div>
 
   <div id="output"></div>
+  <div id="spreadOutput"></div>
+  <div id="totOutput"></div>
+</div>
+
+
+<div class="card">
+<h2>Elevation Difference Calculator</h2>
+<div class="row">
+  <input id="playerElev" type="number" placeholder="Your Elev (m)" class="col">
+  <input id="targetElev" type="number" placeholder="Target Elev (m)" class="col">
+  <button onclick="calculateDifference()">Calc Diff</button>
+</div>
+<div id="elevDiffResult" class="small"></div>
 </div>
 
 <div class="card">
-  <h2>Elevation Difference Calculator</h2>
-
-  <label for="playerElev">Your Elevation (m)</label>
-  <input id="playerElev" type="number" placeholder="e.g., 100" />
-
-  <label for="targetElev">Target Elevation (m)</label>
-  <input id="targetElev" type="number" placeholder="e.g., 200" />
-
-  <div class="row" style="margin-top:12px">
-    <div style="flex:1"><button onclick="calculateDifference()">Calculate Difference</button></div>
-  </div>
-
-  <div id="elevDiffResult" class="small" style="margin-top:6px; color:#ddd;"></div>
+<h3>History</h3>
+<table id="historyTable">
+<thead>
+<tr>
+<th>Name</th><th>Shell</th><th>Rings</th><th>Range</th><th>Bearing</th><th>Elev Diff</th><th>Corrected</th><th>Del</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
-<div class="card">
-  <h3>History</h3>
-  <button onclick="clearHistory()" style="margin-bottom:8px;">Clear History</button>
-  <table id="historyTable">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Shell</th>
-        <th>Rings</th>
-        <th>Range (m)</th>
-        <th>Bearing (°)</th>
-        <th>Elevation Diff (m)</th>
-        <th>Base Elevation (mils)</th>
-        <th>Corrected Elevation (mils)</th>
-        <th>Remove</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
 
 <script>
-
+/* ---------- ballistic tables (keep your data) ---------- */
 const ballisticTables = {
+  "0832DU": {
+    4:[[400,1418],[500,1398],[600,1376],[700,1355],[800,1333],[900,1311],[1000,1288],[1100,1264],[1200,1240],[1300,1215],[1400,1189],[1500,1161],[1600,1133],[1700,1102],[1800,1069],[1900,1034],[2000,995],[2100,950],[2200,896],[2300,820]],
+    3:[[300,1423],[400,1397],[500,1370],[600,1343],[700,1315],[800,1286],[900,1257],[1000,1226],[1100,1193],[1200,1159],[1300,1123],[1400,1084],[1500,1040],[1600,991],[1700,932],[1800,851]],
+    2:[[200,1432],[300,1397],[400,1362],[500,1325],[600,1288],[700,1248],[800,1207],[900,1162],[1000,1114],[1100,1060],[1200,997],[1300,914],[1400,755]],
+    1:[[100,1446],[200,1392],[300,1335],[400,1275],[500,1212],[600,1141],[700,1058],[800,952]],
+    0:[[50,1455],[100,1411],[150,1365],[200,1318],[250,1268],[300,1217],[350,1159],[400,1095],[450,1023],[500,922]]
+  },
   "M821_HE": {
-    4: [[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
-    3: [[300,1534],[400,1511],[500,1489],[600,1466],[700,1442],[800,1419],[900,1395],[1000,1370],[1100,1344],[1200,1318],[1300,1291],[1400,1263],[1500,1233],[1600,1202],[1700,1169],[1800,1133],[1900,1094],[2000,1051],[2100,999],[2200,931],[2300,801]],
-    2: [[200,1538],[300,1507],[400,1437.5],[500,1443],[600,1410],[700,1376],[800,1341],[900,1305],[1000,1266],[1100,1225],[1200,1180],[1300,1132],[1400,1076],[1500,1009]],
-    1: [[100,1547],[200,1492],[300,1437],[400,1378],[500,1317],[600,1249],[700,1174],[800,1085],[900,954]],
-    0: [[50,1540],[100,1479],[150,1416],[200,1350],[250,1279],[300,1201],[350,1106],[400,955]]
-  },
-  "M819_Smoke": {
-    4: [[400,1517],[500,1495],[600,1474],[700,1452],[800,1429],[900,1407],[1000,1383],[1100,1360],[1200,1335],[1300,1310],[1400,1284],[1500,1257],[1600,1228],[1700,1199],[1800,1166],[1900,1132],[2000,1096],[2100,1055],[2200,1008],[2300,952],[2400,871]],
-    3: [[300,1522],[400,1495],[500,1468],[600,1440],[700,1412],[800,1383],[900,1354],[1000,1323],[1100,1291],[1200,1257],[1300,1221],[1400,1183],[1500,1142],[1600,1096],[1700,1044],[1800,980],[1900,892]],
-    2: [[200,1528],[300,1491],[400,1453],[500,1414],[600,1374],[700,1333],[800,1289],[900,1242],[1000,1191],[1100,1133],[1200,1067],[1300,980],[1400,818]],
-    1: [[200,1463],[250,1427],[300,1391],[350,1352],[400,1314],[450,1271],[500,1227],[550,1178],[600,1124],[650,1060],[700,982],[750,822]]
-  },
-  "M853A1_Illum": {
-    4: [[400,1515],[500,1493],[600,1471],[700,1448],[800,1426],[900,1402],[1000,1378],[1100,1353],[1200,1328],[1300,1301],[1400,1274],[1500,1245],[1600,1215],[1700,1184],[1800,1151],[1900,1115],[2000,1076],[2100,1033],[2200,985],[2300,928],[2400,855]],
-    3: [[300,1521],[400,1494],[500,1466],[600,1438],[700,1409],[800,1380],[900,1349],[1000,1317],[1100,1284],[1200,1249],[1300,1212],[1400,1172],[1500,1128],[1600,1081],[1700,1027],[1800,962],[1900,875]],
-    2: [[200,1529],[300,1493],[400,1457],[500,1419],[600,1379],[700,1338],[800,1295],[900,1249],[1000,1199],[1100,1144],[1200,1081],[1300,1005],[1400,900]],
-    1: [[200,1463],[250,1428],[300,1391],[350,1352],[400,1312],[450,1269],[500,1224],[550,1175],[600,1120],[650,1055],[700,974],[750,823]]
-  },
-  "O832DU": {
-    4: [[400,1418],[500,1398],[600,1376],[700,1355],[800,1333],[900,1311],[1000,1288],[1100,1264],[1200,1240],[1300,1215],[1400,1189],[1500,1161],[1600,1133],[1700,1102],[1800,1069],[1900,1034],[2000,995],[2100,950],[2200,896],[2300,820]],
-    3: [[300,1423],[400,1397],[500,1370],[600,1343],[700,1315],[800,1286],[900,1257],[1000,1226],[1100,1193],[1200,1159],[1300,1123],[1400,1084],[1500,1040],[1600,991],[1700,932],[1800,851]],
-    2: [[200,1432],[300,1397],[400,1362],[500,1325],[600,1288],[700,1248],[800,1207],[900,1162],[1000,1114],[1100,1060],[1200,997],[1300,914],[1400,755]],
-    1: [[100,1446],[200,1392],[300,1335],[400,1275],[500,1212],[600,1141],[700,1058],[800,952]],
-    0: [[50,1455],[100,1411],[150,1365],[200,1318],[250,1268],[300,1217],[350,1159],[400,1095],[450,1023],[500,922]]
+    4:[[400,1531],[500,1514],[600,1496],[700,1478],[800,1460],[900,1442],[1000,1424],[1100,1405],[1200,1385],[1400,1346],[1500,1326],[1600,1305],[1700,1283],[1800,1261],[1900,1238],[2000,1214],[2100,1188],[2300,1134],[2400,1104],[2500,1070],[2600,1034],[2700,993],[2800,942],[2900,870]],
+    3:[[300,1534],[400,1511],[500,1489],[600,1466],[700,1442],[800,1419],[900,1395],[1000,1370],[1100,1344],[1200,1318],[1300,1291],[1400,1263],[1500,1233],[1600,1202],[1700,1169],[1800,1133],[1900,1094],[2000,1051],[2100,999],[2200,931],[2300,801]],
+    2:[[200,1538],[300,1507],[400,1437.5],[500,1443],[600,1410],[700,1376],[800,1341],[900,1305],[1000,1266],[1100,1225],[1200,1180],[1300,1132],[1400,1076],[1500,1009]],
+    1:[[100,1547],[200,1492],[300,1437],[400,1378],[500,1317],[600,1249],[700,1174],[800,1085],[900,954]],
+    0:[[50,1540],[100,1479],[150,1416],[200,1350],[250,1279],[300,1201],[350,1106],[400,955]]
   }
 };
 
 const elevCorrectionTables = {
-  "M821_HE": {
-    4: [[400,9],[500,9],[600,9],[700,9],[800,9],[900,9],[1000,10],[1100,10],[1200,9],[1300,10],[1400,10],[1500,11],[1600,11],[1700,11],[1800,11],[1900,12],[2000,12],[2100,13],[2200,14],[2300,15],[2400,17],[2500,17],[2600,20],[2700,25],[2800,31],[2900,64]],
-    3: [[300,12],[400,11],[500,12],[600,12],[700,12],[800,12],[900,13],[1000,13],[1100,13],[1200,13],[1300,14],[1400,15],[1600,16],[1700,17],[1800,19],[1900,21],[2000,26],[2100,31],[2200,46]],
-    2: [[200,15],[300,16],[400,16],[500,16],[600,16],[700,17],[800,18],[900,20],[1000,20],[1100,22],[1200,23],[1300,27],[1400,31],[1500,43],[1600,109]],
-    1: [[100,28],[200,27],[300,29],[400,31],[500,33],[600,35],[700,42],[800,57],[900,148]],
-    0: [[50,61],[100,63],[150,66],[200,71],[250,78],[300,95],[350,151]]
+  "0832DU": {
+    4:[[400,10],[500,11],[600,10],[700,11],[800,11],[900,12],[1000,12],[1100,12],[1200,13],[1300,13],[1400,14],[1500,14],[1600,15],[1700,16],[1800,17],[1900,19],[2000,22],[2100,26],[2200,34],[2300,65]],
+    3:[[300,13],[400,14],[500,13],[600,14],[700,14],[800,14],[900,16],[1000,16],[1100,16],[1200,18],[1300,19],[1400,22],[1500,24],[1600,28],[1700,36],[1800,68]],
+    2:[[200,17],[300,18],[400,18],[500,18],[600,20],[700,20],[800,22],[900,23],[1000,26],[1100,29],[1200,37],[1300,55]],
+    1:[[100,27],[200,28],[300,29],[400,31],[500,35],[600,40],[700,48],[800,81]],
+    0:[[50,44],[100,46],[150,47],[200,50],[250,51],[300,58],[350,64],[400,72],[450,101]]
   },
-  "O832DU": {
-    4: [[400,10],[500,11],[600,10],[700,11],[800,11],[900,12],[1000,12],[1100,12],[1200,13],[1300,13],[1400,14],[1500,14],[1600,15],[1700,16],[1800,17],[1900,19],[2000,22],[2100,26],[2200,34],[2300,65]],
-    3: [[300,13],[400,14],[500,13],[600,14],[700,14],[800,14],[900,16],[1000,16],[1100,16],[1200,18],[1300,19],[1400,22],[1500,24],[1600,28],[1700,36],[1800,68]],
-    2: [[200,17],[300,18],[400,18],[500,18],[600,20],[700,20],[800,22],[900,23],[1000,26],[1100,29],[1200,37],[1300,55]],
-    1: [[100,27],[200,28],[300,29],[400,31],[500,35],[600,40],[700,48],[800,81]],
-    0: [[50,44],[100,46],[150,47],[200,50],[250,51],[300,58],[350,64],[400,72],[450,101]]
+  "M821_HE": {
+    4:[[400,9],[500,9],[600,9],[700,9],[800,9],[900,9],[1000,10],[1100,10],[1200,9],[1300,10],[1400,10],[1500,11],[1600,11],[1700,11],[1800,11],[1900,12],[2000,12],[2100,13],[2200,14],[2300,15],[2400,17],[2500,17],[2600,20],[2700,25],[2800,31],[2900,64]],
+    3:[[300,12],[400,11],[500,12],[600,12],[700,12],[800,12],[900,13],[1000,13],[1100,13],[1200,13],[1300,14],[1400,15],[1600,16],[1700,17],[1800,19],[1900,21],[2000,26],[2100,31],[2200,46]],
+    2:[[200,15],[300,16],[400,16],[500,16],[600,16],[700,17],[800,18],[900,20],[1000,20],[1100,22],[1200,23],[1300,27],[1400,31],[1500,43],[1600,109]],
+    1:[[100,28],[200,27],[300,29],[400,31],[500,33],[600,35],[700,42],[800,57],[900,148]],
+    0:[[50,61],[100,63],[150,66],[200,71],[250,78],[300,95],[350,151]]
   }
 };
 
-
+const tofTables = {
+  "0832DU": {
+    4:[[400,32.9],[500,32.9],[600,32.8],[700,32.7],[800,32.6],[900,32.4],[1000,32.2],[1100,32.1],[1200,31.8],[1300,31.6],[1400,31.3],[1500,31.0],[1600,30.7],[1700,30.3],[1800,29.8],[1900,29.3],[2000,28.7],[2100,27.9],[2200,26.9],[2300,25.3]],
+    3:[[400,27.3],[500,27.2],[600,27.1],[700,26.9],[800,26.7],[900,26.5],[1000,26.2],[1100,25.8],[1200,25.4],[1300,24.9],[1400,24.3],[1500,23.5],[1600,22.3],[1700,19.8]],
+    2:[[300,23.5],[400,23.3],[500,23.2],[600,22.9],[700,22.7],[800,22.3],[900,21.8],[1000,21.3],[1100,20.4],[1200,19.2]],
+    1:[[200,18.4],[300,18.2],[400,17.9],[500,17.5],[600,16.9],[700,16.0],[800,13.9]],
+    0:[[50,14.1],[100,14.0],[150,13.9],[200,13.8],[250,13.6],[300,13.3],[350,12.9],[400,12.4],[450,11.4]]
+  },
+  "M821_HE": {
+    4:[[400,36.3],[500,36.2],[600,36.2],[700,36.1],[800,36.0],[900,35.9],[1000,35.8],[1100,35.7],[1200,35.6],[1300,35.4],[1400,35.3],[1500,35.1],[1600,34.9],[1700,34.6],[1800,34.4],[1900,34.1],[2000,33.8],[2100,33.5],[2200,33.1],[2300,32.7],[2400,32.2],[2500,31.7],[2600,31.0],[2700,30.3],[2800,29.2],[2900,27.7]],
+    3:[[300,31.7],[400,31.6],[500,31.6],[600,31.5],[700,31.4],[800,31.3],[900,31.1],[1000,31.0],[1100,30.8],[1200,30.6],[1300,30.3],[1400,30.1],[1500,29.7],[1600,29.4],[1700,29.0],[1800,28.5],[1900,28.0],[2000,27.3],[2100,26.5],[2200,25.3],[2300,22.7]],
+    2:[[200,26.6],[300,26.5],[400,26.4],[500,26.3],[600,26.2],[700,26.0],[800,25.8],[900,25.5],[1000,25.2],[1100,24.9],[1200,24.4],[1300,23.9],[1400,23.2],[1500,22.3],[1600,20.9]],
+    1:[[100,20.0],[200,19.9],[300,19.7],[400,19.5],[500,19.2],[600,18.8],[700,18.3],[800,17.5],[900,16.1]],
+    0:[[50,13.2],[100,13.2],[150,13.0],[200,12.8],[250,12.6],[300,12.3],[350,11.7],[400,10.7]]
+  }
+};
+/* ---------- helpers ---------- */
 function updateRingsOptions(){
   const shell = document.getElementById('shellSelect').value;
   const sel = document.getElementById('ringsSelect');
   sel.innerHTML = '';
-  const rings = Object.keys(ballisticTables[shell] || {}).map(Number).sort((a,b)=>b-a);
-  rings.forEach(r => { const o = document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
+  const rings = Object.keys(ballisticTables[shell]).map(Number).sort((a,b)=>b-a);
+  rings.forEach(r => { 
+    const o = document.createElement('option'); 
+    o.value=r; 
+    o.textContent=r; 
+    sel.appendChild(o); 
+  });
 }
 updateRingsOptions();
 
-
-function cubicInterp(table, x) {
-  if (!table || table.length === 0) return null;
-  let xs = table.map(p=>p[0]), ys = table.map(p=>p[1]);
-  // simple cubic Hermite using local slope
-  for(let i=0;i<xs.length-1;i++){
-    if(x >= xs[i] && x <= xs[i+1]){
-      let x0=xs[i], x1=xs[i+1], y0=ys[i], y1=ys[i+1];
-      let t=(x-x0)/(x1-x0);
+function interpLinear(table,x){
+  if(!table || table.length===0) return null;
+  if (x <= table[0][0]) return table[0][1];
+  if (x >= table[table.length-1][0]) return table[table.length-1][1];
+  for(let i=0;i<table.length-1;i++){
+    const [x0,y0]=table[i], [x1,y1]=table[i+1];
+    if(x>=x0 && x<=x1){
+      const t=(x-x0)/(x1-x0);
       return y0*(1-t)+y1*t; 
     }
   }
-  if(x<=xs[0]) return ys[0];
-  if(x>=xs[xs.length-1]) return ys[xs.length-1];
   return null;
 }
-
-
-const spreadInput = document.getElementById('spreadInput');
-const spreadSlider = document.getElementById('spreadSlider');
-spreadInput.addEventListener('input',()=>{spreadSlider.value=spreadInput.value; updateSpreadMils();});
-spreadSlider.addEventListener('input',()=>{spreadInput.value=spreadSlider.value; updateSpreadMils();});
 
 function calculateDifference(){
   const player = parseFloat(document.getElementById('playerElev').value);
   const target = parseFloat(document.getElementById('targetElev').value);
-  if(isNaN(player)||isNaN(target)){document.getElementById('elevDiffResult').textContent='Enter both elevations'; return;}
-  const diff = target-player;
+  if(isNaN(player) || isNaN(target)){
+    document.getElementById('elevDiffResult').textContent='Enter both elevations'; 
+    return;
+  }
+  const diff = target - player;
   document.getElementById('elevDiffResult').textContent = `Elevation Difference: ${diff} m`;
+}
+
+/* Spread sync both ways */
+function updateSpreadDisplay(from="slider"){
+  if(from==="slider"){
+    const val = parseFloat(document.getElementById('spreadRange').value);
+    document.getElementById('spreadManual').value = val;
+    document.getElementById('spreadDisplay').textContent = `Spread: ${val} m`;
+  } else {
+    const val = parseFloat(document.getElementById('spreadManual').value);
+    document.getElementById('spreadRange').value = val;
+    document.getElementById('spreadDisplay').textContent = `Spread: ${val} m`;
+  }
 }
 
 function calculate(){
@@ -224,68 +212,77 @@ function calculate(){
   const rings = parseInt(document.getElementById('ringsSelect').value,10);
   const range = parseFloat(document.getElementById('rangeInput').value);
   const elevDiff = parseFloat(document.getElementById('elevDiffInput').value);
+  const bearing = document.getElementById('bearingInput').value || "";
   const name = document.getElementById('nameInput').value || '';
-  const bearing = document.getElementById('bearingInput').value || '';
+  const totEnabled = document.getElementById('totToggle').checked;
+  const spread = parseFloat(document.getElementById('spreadManual').value);
   const out = document.getElementById('output');
+  const spreadOut = document.getElementById('spreadOutput');
+  const totOut = document.getElementById('totOutput');
+  totOut.innerHTML="";
+
   if(isNaN(range)||range<=0){out.textContent='Enter valid target range'; return;}
   const btab = ballisticTables[shell]?.[rings];
   if(!btab){out.textContent='No ballistic data'; return;}
-  const baseMils = cubicInterp(btab,range);
-  let correctedMils = baseMils;
+  const baseMils = interpLinear(btab,range);
+
   const ctab = elevCorrectionTables[shell]?.[rings];
-  if(!isNaN(elevDiff)&&ctab){
-    const per100 = cubicInterp(ctab,range);
-    if(per100!==null) correctedMils = baseMils+(elevDiff/100)*per100;
+  let correctedMils = baseMils;
+  if(!isNaN(elevDiff) && ctab){
+    const per100 = interpLinear(ctab,range);
+    if(per100!==null) correctedMils = baseMils + (elevDiff/100)*per100;
   }
 
-  out.innerHTML = `Base elevation: <strong>${baseMils.toFixed(2)} mils</strong><br>` +
-                  `Corrected elevation: <strong>${correctedMils.toFixed(2)} mils</strong>`;
+  out.innerHTML = `Base elevation: <strong>${baseMils.toFixed(2)} mils</strong><br>Corrected elevation: <strong>${correctedMils.toFixed(2)} mils</strong>`;
 
-  updateSpreadMils(correctedMils);
+  // Spread (clamped)
+  const minRange = btab[0][0];
+  const maxRange = btab[btab.length-1][0];
+  const halfSpread = spread/2;
+  const lowerRange = Math.max(minRange, range - halfSpread);
+  const upperRange = Math.min(maxRange, range + halfSpread);
+  const lowerMils = interpLinear(btab,lowerRange);
+  const upperMils = interpLinear(btab,upperRange);
+  spreadOut.innerHTML = `Suggested Mills for Spread (${spread} m): ${lowerMils.toFixed(2)} → ${upperMils.toFixed(2)}`;
 
+  // TOT (baseline = selected rings)
+  if(totEnabled){
+    const tofs = [];
+    for(const r in tofTables[shell]){
+      const tof = interpLinear(tofTables[shell][r], range);
+      const mils = interpLinear(ballisticTables[shell][r], range);
+      if(tof && mils) tofs.push({rings:r, tof, mils});
+    }
+    if(tofs.length>1){
+      const baseTOF = interpLinear(tofTables[shell][rings], range);
+      let html = "<strong>TOT Solutions:</strong><br><table><tr><th>Rings</th><th>Mils</th><th>TOF (s)</th><th>Fire Delay (s)</th></tr>";
+      tofs.forEach(t=>{
+        const delay = (baseTOF - t.tof).toFixed(1);
+        html += `<tr><td>${t.rings}</td><td>${t.mils.toFixed(2)}</td><td>${t.tof.toFixed(1)}</td><td>${delay>=0?delay:"+"+Math.abs(delay)}</td></tr>`;
+      });
+      html+="</table>";
+      totOut.innerHTML = html;
+    }
+  }
 
-  const tbody = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
-  const row = tbody.insertRow();
+  // History (limit 20 entries)
+  const histTable = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
+  const row = histTable.insertRow();
   row.insertCell().textContent = name;
   row.insertCell().textContent = shell;
   row.insertCell().textContent = rings;
   row.insertCell().textContent = range;
   row.insertCell().textContent = bearing;
   row.insertCell().textContent = elevDiff;
-  row.insertCell().textContent = baseMils.toFixed(2);
   row.insertCell().textContent = correctedMils.toFixed(2);
-  const rmCell = row.insertCell();
-  const rmBtn = document.createElement('button');
-  rmBtn.className='remove-btn'; rmBtn.textContent='Remove';
-  rmBtn.onclick=()=>row.remove();
-  rmCell.appendChild(rmBtn);
-}
+  const delCell = row.insertCell();
+  const delBtn = document.createElement('button');
+  delBtn.textContent = 'Delete';
+  delBtn.onclick = ()=>row.remove();
+  delCell.appendChild(delBtn);
 
-function updateSpreadMils(correctedMils=null){
-  const range = parseFloat(document.getElementById('rangeInput').value);
-  const elevDiff = parseFloat(document.getElementById('elevDiffInput').value);
-  const spreadMeters = parseFloat(spreadInput.value);
-  if(isNaN(range)||isNaN(spreadMeters)) return;
-
-  const shell = document.getElementById('shellSelect').value;
-  const rings = parseInt(document.getElementById('ringsSelect').value,10);
-  const btab = ballisticTables[shell]?.[rings];
-  if(!btab) return;
-  if(correctedMils===null){
-    const baseMils=cubicInterp(btab,range);
-    correctedMils=baseMils;
-    const ctab = elevCorrectionTables[shell]?.[rings];
-    if(!isNaN(elevDiff)&&ctab){
-      const per100 = cubicInterp(ctab,range);
-      if(per100!==null) correctedMils = baseMils+(elevDiff/100)*per100;
-    }
-  }
-
-
-  const deltaMils=spreadMeters*1;
-  const minMils=correctedMils-deltaMils/2;
-  const maxMils=correctedMils+deltaMils/2;
-  document.getElementById('spreadOutput').textContent = `Suggested spread mils: ${minMils.toFixed(2)} – ${maxMils.toFixed(2)} mils`;
+  // Remove oldest if >20
+  while(histTable.rows.length > 20) histTable.deleteRow(0);
 }
 
 function resetView(){
@@ -293,11 +290,7 @@ function resetView(){
   document.getElementById('elevDiffInput').value='';
   document.getElementById('output').textContent='';
   document.getElementById('spreadOutput').textContent='';
-}
-
-function clearHistory(){
-  const tbody = document.getElementById('historyTable').getElementsByTagName('tbody')[0];
-  tbody.innerHTML='';
+  document.getElementById('totOutput').textContent='';
 }
 </script>
 </body>
